@@ -1,0 +1,71 @@
+[project]
+name = 'payment-processor'
+version = '0.1.0'
+description = 'Resilient asynchronous payment processing with transactional outbox'
+requires-python = '==3.13.12'
+dependencies = [
+    'fastapi==0.142.2',
+    'uvicorn[standard]==0.54.0',
+    'pydantic==2.13.5',
+    'pydantic-settings==2.15.0',
+    'sqlalchemy[asyncio]==2.0.54',
+    'asyncpg==0.31.0',
+    'alembic==1.20.0',
+    'faststream[rabbit]==0.6.7',
+    'aio-pika==9.6.2',
+    'aiohttp==3.14.3',
+    'prometheus-client==0.26.0',
+]
+
+[dependency-groups]
+dev = ['pytest==9.1.1', 'pytest-asyncio==1.4.0', 'httpx==0.28.1', 'ruff==0.16.10', 'mypy==1.20.2']
+
+[build-system]
+requires = ['hatchling==1.32.4']
+build-backend = 'hatchling.build'
+
+[tool.hatch.build.targets.wheel]
+packages = ['src/payment_processor']
+
+[tool.ruff]
+target-version = 'py313'
+line-length = 120
+
+[tool.ruff.lint]
+select = ['E', 'F', 'I', 'B', 'UP', 'ASYNC', 'ANN401', 'S101', 'T201', 'TID251']
+
+[tool.ruff.lint.per-file-ignores]
+'tests/**' = ['S101', 'ANN401', 'T201', 'TID251']
+'scripts/**' = ['S101', 'ANN401', 'T201', 'TID251']
+'migrations/env.py' = ['F401']
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+'typing.Any'.msg = 'Use a narrow type, Protocol or object.'
+'builtins.property'.msg = 'Use an explicit method or a dataclass field.'
+'__future__.annotations'.msg = 'Keep runtime annotations available.'
+
+[tool.ruff.format]
+quote-style = 'single'
+
+[tool.mypy]
+plugins = ['pydantic.mypy']
+python_version = '3.13'
+strict = true
+disallow_any_explicit = true
+warn_unreachable = true
+files = ['src']
+
+[[tool.mypy.overrides]]
+module = ['asyncpg', 'asyncpg.*']
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_typed = true
+init_forbid_extra = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+asyncio_mode = 'auto'
+asyncio_default_fixture_loop_scope = 'function'
+testpaths = ['tests']
+markers = ['integration: requires PostgreSQL', 'e2e: requires full Docker Compose environment']

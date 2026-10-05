@@ -1,0 +1,112 @@
+{
+  "exchanges": [
+    {
+      "name": "payments.events",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "payments.dlx",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "payments.new",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "payments.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "payments.events",
+      "vhost": "/",
+      "destination": "payments.new",
+      "destination_type": "queue",
+      "routing_key": "payments.new",
+      "arguments": {}
+    },
+    {
+      "source": "payments.dlx",
+      "vhost": "/",
+      "destination": "payments.dlq",
+      "destination_type": "queue",
+      "routing_key": "payments.dead",
+      "arguments": {}
+    }
+  ],
+  "policies": [
+    {
+      "vhost": "/",
+      "name": "payments-reliable-dlx",
+      "pattern": "^payments\\.new$",
+      "apply-to": "quorum_queues",
+      "priority": 10,
+      "definition": {
+        "dead-letter-exchange": "payments.dlx",
+        "dead-letter-routing-key": "payments.dead",
+        "dead-letter-strategy": "at-least-once",
+        "overflow": "reject-publish",
+        "delivery-limit": 20,
+        "max-length": 100000
+      }
+    },
+    {
+      "vhost": "/",
+      "name": "payments-dlq-capacity",
+      "pattern": "^payments\\.dlq$",
+      "apply-to": "quorum_queues",
+      "priority": 10,
+      "definition": {
+        "overflow": "reject-publish",
+        "max-length": 100000
+      }
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "users": [
+    {
+      "name": "payments",
+      "password_hash": "cG1udLgAC8PuAZvYEIq60miRNzEoMSfcB2GesPwpmrKNOT6f",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": [
+        "administrator"
+      ]
+    }
+  ],
+  "permissions": [
+    {
+      "user": "payments",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ]
+}

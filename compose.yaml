@@ -1,0 +1,81 @@
+name: payment-processor
+
+x-application: &application
+  image: payment-processor:local
+  build: .
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 30s
+  environment: &app-environment
+    ENVIRONMENT: ${ENVIRONMENT:-development}
+    API_KEY: ${API_KEY:?Copy .env.example to .env}
+    DATABASE_URL: postgresql+asyncpg://payments:payments-local@postgres:5432/payments
+    RABBITMQ_URL: amqp://payments:payments-local@rabbitmq:5672/
+    WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-["webhook-receiver"]}
+    WEBHOOK_PRIVATE_HOSTS: ${WEBHOOK_PRIVATE_HOSTS:-["webhook-receiver"]}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    environment:
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments-local
+      POSTGRES_DB: payments
+    ports: ["127.0.0.1:15433:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payments -d payments"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.3.0-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: payments
+      RABBITMQ_DEFAULT_PASS: payments-local
+    ports: ["127.0.0.1:15683:5672", "127.0.0.1:15684:15672"]
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./docker/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./docker/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  api:
+    <<: *application
+    ports: ["127.0.0.1:18081:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; r=urllib.request.Request('http://localhost:8000/health/ready', headers={'X-API-Key':os.environ['API_KEY']}); urllib.request.urlopen(r,timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  consumer:
+    <<: *application
+    command: ["python", "-m", "payment_processor.worker"]
+    ports: ["127.0.0.1:19001:9000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,pathlib,sys; sys.exit(0 if time.time()-float(pathlib.Path('/tmp/payment-processor-worker-heartbeat').read_text())<15 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  webhook-receiver:
+    image: payment-processor:local
+    profiles: [demo]
+    command: ["python", "/demo/webhook_receiver.py"]
+    volumes: ["./docker/webhook_receiver.py:/demo/webhook_receiver.py:ro"]
+    ports: ["127.0.0.1:18082:8080"]
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

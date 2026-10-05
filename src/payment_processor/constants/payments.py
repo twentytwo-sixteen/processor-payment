@@ -1,0 +1,57 @@
+from decimal import Decimal
+from enum import StrEnum
+from typing import Final, Literal
+
+
+class Currency(StrEnum):
+    RUB = 'RUB'
+    USD = 'USD'
+    EUR = 'EUR'
+
+
+class PaymentStatus(StrEnum):
+    PENDING = 'pending'
+    SUCCEEDED = 'succeeded'
+    FAILED = 'failed'
+
+
+type TerminalPaymentStatus = Literal[PaymentStatus.SUCCEEDED, PaymentStatus.FAILED]
+
+
+class WebhookStatus(StrEnum):
+    NOT_READY = 'not_ready'
+    PENDING = 'pending'
+    DELIVERED = 'delivered'
+    EXHAUSTED = 'exhausted'
+
+
+PAYMENT_EXCHANGE = 'payments.events'
+PAYMENT_QUEUE = 'payments.new'
+PAYMENT_DEAD_EXCHANGE = 'payments.dlx'
+PAYMENT_DEAD_QUEUE = 'payments.dlq'
+PAYMENT_DEAD_ROUTING_KEY = 'payments.dead'
+PAYMENT_MAX_ATTEMPTS = 3
+PAYMENT_AMOUNT_MAX = Decimal('9999999999999999.99')
+PAYMENT_AMOUNT_QUANTUM = Decimal('0.01')
+PAYMENT_AMOUNT_MAX_DIGITS = 18
+PAYMENT_AMOUNT_DECIMAL_PLACES = 2
+PAYMENT_METADATA_MAX_BYTES = 16384
+PAYMENT_DESCRIPTION_MAX_LENGTH = 1000
+PAYMENT_IDEMPOTENCY_KEY_MAX_LENGTH = 255
+PAYMENT_EVENT_PROCESSING_REQUESTED = 'payment.processing.requested'
+PAYMENT_EVENT_PROCESSING_EXHAUSTED = 'payment.processing.exhausted'
+PAYMENT_GATEWAY_FAILURE_DECLINED = 'gateway_declined'
+PAYMENT_GATEWAY_DECLINE_BUCKETS = 10
+PAYMENT_PROCESSING_ATTEMPT_INITIAL: Final = 1
+PAYMENT_RETRY_BACKOFF_MULTIPLIER: Final = 2
+PAYMENT_AMOUNT_FINGERPRINT_FORMAT: Final = '.2f'
+PAYMENT_IDEMPOTENCY_KEY_MIN_LENGTH: Final = 1
+PAYMENT_CURRENCY_MAX_LENGTH: Final = 3
+PAYMENT_STATUS_MAX_LENGTH: Final = 16
+PAYMENT_REQUEST_HASH_LENGTH: Final = 64
+PAYMENT_GATEWAY_REFERENCE_MAX_LENGTH: Final = 128
+PAYMENT_GATEWAY_DELAY_MIN_SECONDS: Final = 2.0
+PAYMENT_GATEWAY_DELAY_MAX_SECONDS: Final = 5.0
+PAYMENT_GATEWAY_HASH_PREFIX_BYTES: Final = 8
+PAYMENT_SCHEMA_VERSION: Final[Literal[1]] = 1
+PAYMENT_EVENT_PROCESSED: Final[Literal['payment.processed']] = 'payment.processed'
